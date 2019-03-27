@@ -14,6 +14,7 @@ export default class ChargeGrid extends Component {
             columns={charge_columns}
             rowGetter={i => this.props.rows[i]}
             rowsCount={this.props.rows.length}
+            minHeight={250}
              />
         )
     }

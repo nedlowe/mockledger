@@ -13,6 +13,7 @@ export default class BalanceGrid extends Component {
             columns={balance_columns}
             rowGetter={i => this.props.rows[i]}
             rowsCount={this.props.rows.length}
+            minHeight={250}
              />
         )
     }

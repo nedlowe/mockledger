@@ -1,4 +1,8 @@
 import React, { Component } from 'react';
+import Button from 'react-bootstrap/Button';
+import Col from 'react-bootstrap/Col'
+import Container from 'react-bootstrap/Container'
+import Row from 'react-bootstrap/Row'
 import logo from './logo.jpg';
 import './App.css';
 import BalanceGrid from './components/balance_grid';
@@ -7,10 +11,12 @@ import ChargeGrid from './components/charge_grid';
 
 const api_path = 'https://alzrnmc09j.execute-api.ap-southeast-1.amazonaws.com/api/'
 
-const monthly_balances_api = api_path + 'balances/405388793?month=2019-03'
-const monthly_charges_api = api_path + 'eom/405388793/2019-03'
-const charge_post_api = api_path + 'eod/405388793/'
-const balance_update_api = api_path + 'balances/405388793/'
+const account_id = '937501964'
+
+const monthly_balances_api = api_path + 'balances/' + account_id + '?month=2019-03'
+const monthly_charges_api = api_path + 'eom/' + account_id + '/2019-03'
+const charge_post_api = api_path + 'eod/' + account_id + '/'
+const balance_update_api = api_path + 'balances/' + account_id + '/'
 
 class App extends Component {
 
@@ -50,10 +56,11 @@ class App extends Component {
         });
       })
   }
-  
+
   setChargesForDay() {
     fetch(charge_post_api + this.state.charge_calc_date, {
-      method: 'POST'})
+      method: 'POST'
+    })
       .then((result) => {
         return result.json();
       }).then((jsonResult) => {
@@ -61,6 +68,19 @@ class App extends Component {
         console.log(jsonResult);
       })
   }
+
+  setEOM() {
+    fetch(monthly_charges_api, {
+      method: 'POST'
+    })
+      .then((result) => {
+        return result.json();
+      }).then((jsonResult) => {
+        // Do something with the result
+        console.log(jsonResult);
+      })
+  }
+
 
   setBalanceForDay() {
     fetch(balance_update_api + this.state.ledger_date, {
@@ -103,35 +123,60 @@ class App extends Component {
         <div>
           <img src={logo} alt="logo" />
         </div>
-        <div>
-          <button onClick={() => this.callMonthlyBalancesApi()}>
-            Click here to get balances
-        </button>
-          <BalanceGrid
-            rows={this.state.balances_rows}
-          />
-        </div>
-        <div>
-          <input name='ledger_date' value={this.state.ledger_date} onChange={evt => this.updateLedgerDateValue(evt)} />
-          <input name='temp_balance' value={this.state.temp_balance} onChange={evt => this.updateTempBalanceValue(evt)} />
-          <button onClick={() => this.setBalanceForDay()}>
-            Click here to get balance for day and update ledger
-        </button>
-        </div>
-        <div>
-          <button onClick={() => this.callMonthlyChargesApi()}>
-            Click here to get charges
-        </button>
-          <ChargeGrid
-            rows={this.state.charges_rows}
-          />
-        </div>
-        <div>
-          <input name='charge_calc_date' value={this.state.charge_calc_date} onChange={evt => this.updateChargeCalcDateValue(evt)} />
-          <button onClick={() => this.setChargesForDay()}>
-            Calculate charges for date
-        </button>
-        </div>
+        <Container>
+          <Row className='top-buffer'>
+            <Col>
+              <Button onClick={() => this.callMonthlyBalancesApi()}>
+                Click here to get balances
+              </Button>
+            </Col>
+          </Row>
+          <Row className='top-buffer'>
+            <Col>
+              <BalanceGrid
+                rows={this.state.balances_rows}
+              />
+            </Col>
+          </Row>
+          <Row className='top-buffer'>
+            <Col>
+              <Button onClick={() => this.callMonthlyChargesApi()}>
+                Click here to get charges
+        </Button>
+            </Col>
+          </Row>
+          <Row className='top-buffer'>
+            <Col>
+              <ChargeGrid
+                rows={this.state.charges_rows}
+              />
+            </Col>
+          </Row>
+          <Row className='top-buffer'>
+            <Col>
+              <input name='ledger_date' value={this.state.ledger_date} onChange={evt => this.updateLedgerDateValue(evt)} />
+              <input name='temp_balance' value={this.state.temp_balance} onChange={evt => this.updateTempBalanceValue(evt)} />
+              <Button onClick={() => this.setBalanceForDay()}>
+                Click here to get balance for day and update ledger
+        </Button>
+            </Col>
+          </Row>
+          <Row className='top-buffer'>
+            <Col>
+              <input name='charge_calc_date' value={this.state.charge_calc_date} onChange={evt => this.updateChargeCalcDateValue(evt)} />
+              <Button onClick={() => this.setChargesForDay()}>
+                Calculate charges for date
+              </Button>
+            </Col>
+          </Row>
+          <Row className='top-buffer'>
+            <Col>
+              <Button onClick={() => this.setEOM()}>
+                End of Month Process
+              </Button>
+            </Col>
+          </Row>
+        </Container>
       </div>
     );
   }
