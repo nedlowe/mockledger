@@ -50,9 +50,9 @@ class App extends Component {
         });
       })
   }
-
-  setBalanceForDay() {
-    fetch(balance_update_api + this.state.ledger_date, {
+  
+  setChargesForDay() {
+    fetch(charge_post_api + this.state.charge_calc_date, {
       method: 'POST'})
       .then((result) => {
         return result.json();
@@ -62,8 +62,8 @@ class App extends Component {
       })
   }
 
-  setChargesForDay() {
-    fetch(charge_post_api + this.state.charge_calc_date, {
+  setBalanceForDay() {
+    fetch(balance_update_api + this.state.ledger_date, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
