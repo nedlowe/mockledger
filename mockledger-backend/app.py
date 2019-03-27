@@ -4,10 +4,11 @@ from chalice import Chalice, BadRequestError
 import requests
 
 import calendar
-from datetime import date
+from datetime import date, datetime
 from dateutil.parser import parse
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 import logging
+import pytz
 import random
 
 app = Chalice(app_name='mockledger-backend')
@@ -19,7 +20,11 @@ charges = dynamodb.Table('ledger_charges')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 app.debug = True
-balance_api = 'INSERT API CALL HERE'
+main_charge_ledger = '5c9b118f-bb01-44e7-a2ad-a35fd691a9fc'
+# For Liam
+prototype_customer_id = '1'
+
+
 
 @app.route('/ledgers/{customer_id}', methods=['POST'], cors=True)
 def create_ledger(customer_id):
@@ -70,7 +75,10 @@ def proccess_balances(account_id, ledger_date):
         return balance_quantity
     else:
         logger.info("Posting new balance for date: %s", ledger_date)
-        if ledger_date != date.today().strftime("%Y-%m-%d"):
+        now = datetime.now(pytz.timezone('Asia/Singapore'))
+        today = now.date().strftime("%Y-%m-%d")
+        logger.info("Today is: %s", today)
+        if ledger_date != today:
             json_body = app.current_request.json_body
             balance_quantity = Decimal(json_body.get('balance_quantity'))
         else: 
@@ -106,14 +114,14 @@ def insert_charge(account_id, ledger_date, charge_type, charge_value):
             }
     )
 
-def get_ledger_id(account_id, ledger_type='main_ledger'):
-    # THIS NO LONGER WORKS AFTER CHANGING THE DDB SCHEMA!
-    # TODO - FIX
-    ledger = ledgers.get_item(
-        Key={'account_id': account_id}
+# GET CUSTOMER DETAILS
+@app.route('/customers/{customer_id}', methods=['GET'], cors=True)
+def get_customer(customer_id):
+    customer = ledgers.get_item(
+        Key={'customer_id': customer_id}
     )
-    ledger_id = ledger['Item'][ledger_type]
-    return ledger_id
+    customer = customer['Item']
+    return customer
 
 def get_balance(account_id, ledger_date):
     balance = balances.get_item(
@@ -136,6 +144,11 @@ def post_eod(account_id, ledger_date):
     logger.info("Crediting Amount: %s", crediting_amount)
     insert_charge(account_id=account_id, ledger_date=ledger_date, charge_type='credit', charge_value=crediting_amount)
     # Interledger transfer from singlife to charges
+    details = get_customer(prototype_customer_id)
+    interledger_quantity = crediting_amount.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+    payload = {'from_ledger': main_charge_ledger, 'to_ledger': details['charge_ledger'], 'amount': interledger_quantity}
+    r = requests.post(transfer_api, data=payload)
+    logger.info(r.text)
     return crediting_amount
 
 # Process EOD
@@ -151,10 +164,15 @@ def process_eom(account_id, ledger_month):
         KeyConditionExpression=Key('account_id').eq(account_id) & Key('ledger_date').between(start_date, end_date)
     )
     # Sum up charges
-    total_quantity = -1 * sum([Decimal(item['charge_value']) for item in response['Items']])
+    total_quantity = sum([Decimal(item['charge_value']) for item in response['Items']])
     # If it's a POST, also write the result back
     if app.current_request.method == 'POST':
-        insert_charge(account_id=account_id, ledger_date=end_date, charge_type='credit_settle', charge_value=total_quantity)
+        insert_charge(account_id=account_id, ledger_date=end_date, charge_type='credit_settle', charge_value=-1 * total_quantity)
         # Interledger transfer from charges to main
+        details = get_customer(prototype_customer_id)
+        interledger_quantity = total_quantity.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+        payload = {'from_ledger': details['charge_ledger'], 'to_ledger': details['main_ledger'], 'amount': interledger_quantity}
+        r = requests.post(transfer_api, data=payload)
+        logger.info(r.text)
     logger.info("Total Quantity is: %s", total_quantity)
     return response

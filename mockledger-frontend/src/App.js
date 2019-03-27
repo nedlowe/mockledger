@@ -25,8 +25,8 @@ class App extends Component {
     this.state = {
       balances_rows: [],
       charges_rows: [],
-      ledger_date: '2019-03-27',
-      charge_calc_date: '2019-03-27',
+      ledger_date: '2019-03-28',
+      charge_calc_date: '2019-03-28',
       temp_balance: '123'
     };
   }
@@ -174,6 +174,10 @@ class App extends Component {
               <Button onClick={() => this.setEOM()}>
                 End of Month Process
               </Button>
+            </Col>
+          </Row>
+          <Row className='top-buffer'>
+            <Col>
             </Col>
           </Row>
         </Container>
